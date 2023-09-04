@@ -64,6 +64,8 @@ void explorar_directorio_recursivo(const char *ruta) {
     }
 }
 
+
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Uso: %s <ruta_del_directorio>\n", argv[0]);
