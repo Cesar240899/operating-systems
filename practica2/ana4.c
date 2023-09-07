@@ -70,6 +70,7 @@ void explore_directory(const char *dir_path) {
 
             if (child_pid == 0) {
                 // Proceso hijo
+                printf("Soy el proceso PID...%d\",getpid());
                 explore_directory(entry_path);
                 exit(0);
             } else if (child_pid < 0) {
