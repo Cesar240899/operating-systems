@@ -8,9 +8,7 @@
 #include <unistd.h>
 #include <time.h> // Para trabajar con fechas y horas
 
-// SISTEMAS OPERATIVOS
-// Nombre: Jesus Cesar Guerrero Torres
-// Matricula: 2173048598
+
 
 void print_file_info(const char *path) {
     struct stat file_stat; // Declara una estructura para almacenar información sobre el archivo.
