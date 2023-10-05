@@ -8,7 +8,9 @@
 #include <unistd.h>
 #include <time.h> // Para trabajar con fechas y horas
 
-
+// SISTEMAS OPERATIVOS
+// Nombre: Jesus Cesar Guerrero Torres
+// Matricula: 2173048598
 
 void print_file_info(const char *path) {
     struct stat file_stat; // Declara una estructura para almacenar información sobre el archivo.
@@ -55,6 +57,7 @@ void explore_directory(const char* rootPath) {
     struct dirent *entry;
     struct stat fileStat;
     DIR *dir;
+    int total=0;
 
     // Abre el directorio raíz
     dir = opendir(rootPath);
@@ -73,6 +76,8 @@ void explore_directory(const char* rootPath) {
                 perror("Error al obtener información del archivo");
                 continue;
             }
+            
+       
 
             if (S_ISDIR(fileStat.st_mode)) {
                 // Es un directorio, abre el directorio interno
@@ -81,7 +86,12 @@ void explore_directory(const char* rootPath) {
                     perror("Error al abrir el directorio interno");
                     continue;
                 }
-
+                
+          pid_t child_pid = fork();
+	
+          if (child_pid == 0) {
+            printf("Soy el proceso PID: %d ENCONTRE UN DIRECTORIO %s \n", getpid(), fullPath);
+	        total++;
                 // Recorre el directorio interno
                 struct dirent *subentry;
                 while ((subentry = readdir(subdir)) != NULL) {
@@ -96,6 +106,7 @@ void explore_directory(const char* rootPath) {
                 }
 
                 closedir(subdir);
+                exit(0);
             } else {
                 // Es un archivo, puedes realizar acciones en él aquí
                 //printf("Archivo encontrado: %s\n", fullPath);
@@ -103,8 +114,15 @@ void explore_directory(const char* rootPath) {
             }
         }
     }
+    }//while
 
     closedir(dir);
+    
+     // Esperar a que todos los procesos hijos terminen
+    while (total > 0) {
+        wait(NULL);
+        total--;
+    }
 }
 
 
