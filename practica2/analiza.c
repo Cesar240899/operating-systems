@@ -52,77 +52,75 @@ void print_file_info(const char *path) {
     }
 }
 
-// Función para explorar directorios y subdirectorios sin recursión
-void explore_directory(const char* rootPath) {
-    struct dirent *entry;
-    struct stat fileStat;
-    DIR *dir;
+void explore_directory(const char *dir_path) {
+    DIR *dir;                // Declara un puntero a una estructura DIR para representar el directorio.
+    struct dirent *entry;    // Declara un puntero a una estructura dirent para representar una entrada de directorio.
+    int contHijo=0;
     int total=0;
+    int v1;
+    int i=0;
+    
+    int raiz=getpid();
 
-    // Abre el directorio raíz
-    dir = opendir(rootPath);
-    if (dir == NULL) {
-        perror("Error al abrir el directorio");
+    // Abre el directorio especificado por la ruta dir_path y obtiene un puntero a él.
+    dir = opendir(dir_path);
+
+    // Verifica si la apertura del directorio fue exitosa. Si no, muestra un mensaje de error y retorna.
+    if (!dir) {
+        perror("opendir");   // Muestra un mensaje de error utilizando perror.
         return;
     }
 
-    // Recorre el directorio raíz
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-            char fullPath[1024]; // Tamaño máximo del camino, ajusta según tus necesidades
-            sprintf(fullPath, "%s/%s", rootPath, entry->d_name);
-
-            if (stat(fullPath, &fileStat) < 0) {
-                perror("Error al obtener información del archivo");
-                continue;
-            }
-            
-       
-
-            if (S_ISDIR(fileStat.st_mode)) {
-                // Es un directorio, abre el directorio interno
-                DIR *subdir = opendir(fullPath);
-                if (subdir == NULL) {
-                    perror("Error al abrir el directorio interno");
-                    continue;
-                }
-                
-          pid_t child_pid = fork();
-	
-          if (child_pid == 0) {
-            printf("Soy el proceso PID: %d ENCONTRE UN DIRECTORIO %s \n", getpid(), fullPath);
-	        total++;
-                // Recorre el directorio interno
-                struct dirent *subentry;
-                while ((subentry = readdir(subdir)) != NULL) {
-                    if (strcmp(subentry->d_name, ".") != 0 && strcmp(subentry->d_name, "..") != 0) {
-                        char subFullPath[1024]; // Tamaño máximo del camino, ajusta según tus necesidades
-                        sprintf(subFullPath, "%s/%s", fullPath, subentry->d_name);
-
-                        // Realiza acciones en el archivo encontrado
-                        //printf("Archivo encontrado: %s\n", subFullPath);
-                        print_file_info(subFullPath);
-                    }
-                }
-
-                closedir(subdir);
-                exit(0);
-            } else {
-                // Es un archivo, puedes realizar acciones en él aquí
-                //printf("Archivo encontrado: %s\n", fullPath);
-                print_file_info(fullPath);
-            }
+    // Itera a través de todas las entradas en el directorio.
+    while ((entry = readdir(dir))) { // leer secuencialmente las entradas de un directorio mientras haya entradas válidas en el directorio
+        // Ignora las entradas especiales "." y "..".
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
         }
-    }
-    }//while
+ 
+        // Construye la ruta completa al archivo o directorio utilizando dir_path y el nombre de la entrada.
+        char entry_path[257];//Es el bufer // Aumenta el tamaño del búfer para acomodar 257 bytes (256 caracteres + el carácter nulo '\0'). 
+        //La función snprintf asegura que no se produzcan desbordamientos de búfer al especificar el tamaño del búfer 
+        
+        // cadena de ruta completa concatenando dir_path y entry->d_name
+        snprintf(entry_path, sizeof(entry_path), "%s/%s", dir_path, entry->d_name); 
 
-    closedir(dir);
-    
-     // Esperar a que todos los procesos hijos terminen
-    while (total > 0) {
-        wait(NULL);
-        total--;
+        if (entry->d_type == DT_DIR) { // si la entrada es de tipo directorio
+            // Si la entrada es un directorio, crea un proceso hijo para explorar el directorio.
+            pid_t child_pid = fork();
+            contHijo+=1;
+
+            if (child_pid == 0) {
+                // Proceso hijo: muestra su PID y explora el directorio llamando a explore_directory recursivamente.
+                printf("Soy el proceso PID: %d ENCONTRE UN DIRECTORIO %s \n", getpid(),entry_path);
+                dir=opendir(entry_path);
+                //explore_directory(entry_path);
+                //exit(0); // Termina el proceso hijo.
+          
+		
+            }
+          
+        }else 
+          print_file_info(entry_path);
+        
     }
+    
+    if(contHijo>0){
+	for(i=0; i<contHijo; i++){
+	wait(&v1);
+	total+=WEXITSTATUS(v1);
+	}
+    }
+    total+=1;
+    
+    if(raiz==getpid()){
+	printf("Proceso PID: %d espero a %d procesos hijos \n", getpid(),total);
+	exit(total);	
+    }else
+      exit(1);
+
+    // Cierra el directorio después de procesar todas las entradas.
+    closedir(dir);
 }
 
 
@@ -145,5 +143,5 @@ int main(int argc, char *argv[]) {
     
    
     // Retorna 0 para indicar una ejecución exitosa del programa.
-    return 0;
+    //return 0;
 }
